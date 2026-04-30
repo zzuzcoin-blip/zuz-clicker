@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ZUZ Time Miner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: linear-gradient(135deg, #0A0A0A, #1A1A1A);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            color: white;
+            padding: 20px;
+        }
+        .game-container {
+            max-width: 500px;
+            width: 100%;
+            background: rgba(26,26,26,0.9);
+            border-radius: 48px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border: 1px solid rgba(212,175,55,0.3);
+            text-align: center;
+        }
+        .coin {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle at 30% 30%, #FFD700, #D4AF37);
+            border-radius: 50%;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            font-weight: bold;
+            color: #0A0A0A;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transition: transform 0.05s linear;
+            border: 2px solid #FFD700;
+        }
+        .coin:active {
+            transform: scale(0.96);
+        }
+        .stats {
+            background: #0A0A0A;
+            border-radius: 32px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+        .energy-bar {
+            background: #2A2A2A;
+            border-radius: 20px;
+            height: 20px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .energy-fill {
+            background: linear-gradient(90deg, #D4AF37, #FFD700);
+            width: 100%;
+            height: 100%;
+            transition: width 0.2s;
+        }
+        .click-effect {
+            position: fixed;
+            pointer-events: none;
+            font-size: 28px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 0 0 5px #D4AF37;
+            animation: floatUp 0.6s ease-out forwards;
+            z-index: 1000;
+        }
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -150%) scale(1.5);
+            }
+        }
+        button {
+            background: #D4AF37;
+            color: #0A0A0A;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .level-badge {
+            background: #D4AF37;
+            color: #0A0A0A;
+            border-radius: 40px;
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="level-badge" id="levelDisplay">Уровень 1</div>
+    <div class="coin" id="coin">⏣ ZUZ</div>
+    
+    <div class="stats">
+        <div class="stat-row">
+            <span>💎 Пыль времени (Dust)</span>
+            <span id="dustBalance">0</span>
+        </div>
+        <div class="stat-row">
+            <span>⚡ Энергия</span>
+            <span id="energyValue">100</span>
+        </div>
+        <div class="energy-bar">
+            <div class="energy-fill" id="energyFill" style="width: 100%"></div>
+        </div>
+        <div class="stat-row">
+            <span>💪 Сила клика</span>
+            <span id="clickPower">1</span>
+        </div>
+        <div class="stat-row">
+            <span>🏆 Всего кликов</span>
+            <span id="totalClicks">0</span>
+        </div>
+    </div>
+    
+    <button id="convertBtn">🔄 Обменять Dust → ZUZ</button>
+    <button id="leaderboardBtn">🏅 Таблица лидеров</button>
+</div>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+    let tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    
+    let userId = tg.initDataUnsafe.user?.id;
+    let username = tg.initDataUnsafe.user?.username || tg.initDataUnsafe.user?.first_name || "Игрок";
+    
+    let dust = 0;
+    let energy = 100;
+    let clickPower = 1;
+    let totalClicks = 0;
+    let level = 1;
+    
+    const API_URL = window.location.origin;
+    
+    // Регистрация пользователя
+    async function login() {
+        const res = await fetch(`${API_URL}/api/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_id: userId, username })
+        });
+        const data = await res.json();
+        dust = data.balance_dust;
+        energy = data.energy;
+        clickPower = data.click_power;
+        totalClicks = data.total_clicks;
+        level = data.level;
+        updateUI();
+    }
+    
+    function updateUI() {
+        document.getElementById('dustBalance').innerText = dust;
+        document.getElementById('energyValue').innerText = energy;
+        document.getElementById('clickPower').innerText = clickPower;
+        document.getElementById('totalClicks').innerText = totalClicks;
+        document.getElementById('levelDisplay').innerHTML = `Уровень ${level} ✨`;
+        const energyPercent = (energy / 100) * 100;
+        document.getElementById('energyFill').style.width = `${energyPercent}%`;
+    }
+    
+    async function handleClick() {
+        const res = await fetch(`${API_URL}/api/click`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_id: userId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            dust = data.dust;
+            energy = data.energy;
+            level = data.level;
+            clickPower = data.clickPower;
+            totalClicks++;
+            updateUI();
+            showClickEffect();
+            tg.HapticFeedback.impactOccurred('light');
+        } else {
+            alert(data.message);
+        }
+    }
+    
+    function showClickEffect() {
+        const coin = document.getElementById('coin');
+        const rect = coin.getBoundingClientRect();
+        const effect = document.createElement('div');
+        effect.className = 'click-effect';
+        effect.innerText = `+${clickPower}`;
+        effect.style.left = `${rect.left + rect.width / 2}px`;
+        effect.style.top = `${rect.top + rect.height / 2}px`;
+        document.body.appendChild(effect);
+        setTimeout(() => effect.remove(), 600);
+    }
+    
+    document.getElementById('coin').addEventListener('click', handleClick);
+    
+    document.getElementById('convertBtn').addEventListener('click', () => {
+        alert(`Обмен Dust → ZUZ скоро появится. У вас ${dust} Dust`);
+    });
+    
+    document.getElementById('leaderboardBtn').addEventListener('click', async () => {
+        const res = await fetch(`${API_URL}/api/leaderboard`);
+        const leaders = await res.json();
+        let msg = "🏆 ТОП-10 КЛИКЕРОВ 🏆\n\n";
+        leaders.forEach((u, i) => {
+            msg += `${i+1}. ${u.username} — ${u.total_clicks} кликов (ур. ${u.level})\n`;
+        });
+        alert(msg);
+    });
+    
+    login();
+</script>
+</body>
+</html>
