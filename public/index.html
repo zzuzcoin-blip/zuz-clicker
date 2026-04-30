@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>ZUZ Clicker — 3D монета</title>
+    <title>ZUZ Clicker — Секретная зона</title>
     <style>
         * {
             margin: 0;
@@ -32,11 +32,9 @@
             border: 1px solid rgba(212,175,55,0.3);
             text-align: center;
         }
-        
-        /* 3D МОНЕТА */
         .coin-3d {
-            width: 220px;
-            height: 220px;
+            width: 280px;
+            height: 280px;
             margin: 20px auto;
             position: relative;
             cursor: pointer;
@@ -60,11 +58,14 @@
             text-shadow: 0 2px 10px rgba(255,215,0,0.8);
             box-shadow: 0 10px 25px rgba(0,0,0,0.4), inset 0 -8px 15px rgba(0,0,0,0.3), inset 0 5px 10px rgba(255,255,200,0.6);
             border: 2px solid #FFE066;
-            transition: all 0.05s linear;
-            letter-spacing: 4px;
         }
-        
-        /* СТАТИСТИКА */
+        .secret-hint {
+            font-size: 12px;
+            margin-top: -10px;
+            margin-bottom: 15px;
+            color: #D4AF37;
+            opacity: 0.7;
+        }
         .stats {
             background: rgba(0,0,0,0.5);
             border-radius: 40px;
@@ -85,18 +86,14 @@
             height: 20px;
             overflow: hidden;
             margin: 10px 0;
-            box-shadow: inset 0 1px 3px #000;
         }
         .energy-fill {
             background: linear-gradient(90deg, #00D18C, #00FFB3);
             width: 100%;
             height: 100%;
-            transition: width 0.2s ease;
+            transition: width 0.2s;
             border-radius: 30px;
-            box-shadow: 0 0 6px #00FFAA;
         }
-        
-        /* ВЫЛЕТАЮЩИЕ ЦИФРЫ */
         .click-effect {
             position: fixed;
             pointer-events: none;
@@ -106,20 +103,11 @@
             text-shadow: 0 0 5px #00D18C;
             animation: floatUp 0.5s ease-out forwards;
             z-index: 2000;
-            filter: drop-shadow(0 0 4px #00D18C);
         }
         @keyframes floatUp {
-            0% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(0.8);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(-50%, -150%) scale(1.4);
-            }
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
+            100% { opacity: 0; transform: translate(-50%, -150%) scale(1.4); }
         }
-        
-        /* КНОПКИ */
         button {
             background: linear-gradient(135deg, #D4AF37, #B8860B);
             color: #0A0A0A;
@@ -130,12 +118,8 @@
             font-size: 16px;
             margin: 8px 6px;
             cursor: pointer;
-            transition: 0.1s linear;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
-        button:active {
-            transform: scale(0.96);
-        }
+        button:active { transform: scale(0.96); }
         .level-badge {
             background: linear-gradient(135deg, #D4AF37, #FFD966);
             color: #1A1A1A;
@@ -145,41 +129,47 @@
             font-weight: bold;
             display: inline-block;
             margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .secret-toast {
+            position: fixed;
+            bottom: 50px;
+            left: 20px;
+            right: 20px;
+            background: #D4AF37;
+            color: #0A0A0A;
+            text-align: center;
+            padding: 12px;
+            border-radius: 40px;
+            font-weight: bold;
+            z-index: 3000;
+            animation: fadeOut 3s forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
         }
     </style>
 </head>
 <body>
 <div class="game-container">
-    <div class="level-badge" id="levelDisplay">🗿 Уровень 1</div>
+    <div class="level-badge" id="levelDisplay">Уровень 1</div>
     
     <div class="coin-3d" id="coin">
         <div class="coin-inner">ZUZ</div>
     </div>
+    <div class="secret-hint" id="secretHint">✨ Где-то на монете спрятан секрет ✨</div>
     
     <div class="stats">
-        <div class="stat-row">
-            <span>💎 Пыль времени (Dust)</span>
-            <span id="dustBalance">0</span>
-        </div>
-        <div class="stat-row">
-            <span>⚡ Энергия</span>
-            <span id="energyValue">100</span>
-        </div>
-        <div class="energy-bar-container">
-            <div class="energy-fill" id="energyFill" style="width: 100%"></div>
-        </div>
-        <div class="stat-row">
-            <span>💪 Сила клика</span>
-            <span id="clickPower">1</span>
-        </div>
-        <div class="stat-row">
-            <span>🏆 Всего кликов</span>
-            <span id="totalClicks">0</span>
-        </div>
+        <div class="stat-row"><span>💎 Dust</span><span id="dustBalance">0</span></div>
+        <div class="stat-row"><span>⚡ Энергия</span><span id="energyValue">100</span></div>
+        <div class="energy-bar-container"><div class="energy-fill" id="energyFill" style="width: 100%"></div></div>
+        <div class="stat-row"><span>💪 Сила клика</span><span id="clickPower">1</span></div>
+        <div class="stat-row"><span>🏆 Кликов</span><span id="totalClicks">0</span></div>
     </div>
     
-    <button id="convertBtn">🔄 Обменять Dust → ZUZ</button>
+    <button id="dailyBtn">🎁 Ежедневный бонус</button>
+    <button id="autoMinerBtn">⚙️ Купить авто-кликер</button>
     <button id="leaderboardBtn">🏅 Таблица лидеров</button>
 </div>
 
@@ -188,16 +178,12 @@
     let tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
-    tg.enableClosingConfirmation();
     
     let userId = tg.initDataUnsafe.user?.id;
     let username = tg.initDataUnsafe.user?.username || tg.initDataUnsafe.user?.first_name || "Игрок";
     
-    let dust = 0;
-    let energy = 100;
-    let clickPower = 1;
-    let totalClicks = 0;
-    let level = 1;
+    let dust = 0, energy = 100, clickPower = 1, totalClicks = 0, level = 1;
+    let secretZone = null;
     
     const API_URL = window.location.origin;
     
@@ -213,7 +199,9 @@
         clickPower = data.click_power;
         totalClicks = data.total_clicks;
         level = data.level;
+        secretZone = data.secretZone;
         updateUI();
+        if (data.isNew) tg.showAlert('🎁 Ты получил 500 Dust и +50 энергии! Начни кликать!');
     }
     
     function updateUI() {
@@ -221,23 +209,36 @@
         document.getElementById('energyValue').innerText = energy;
         document.getElementById('clickPower').innerText = clickPower;
         document.getElementById('totalClicks').innerText = totalClicks;
-        document.getElementById('levelDisplay').innerHTML = `🏆 Уровень ${level} 🏆`;
+        document.getElementById('levelDisplay').innerHTML = `🏆 Уровень ${level}`;
         const percent = Math.max(0, Math.min(100, (energy / 100) * 100));
         document.getElementById('energyFill').style.width = `${percent}%`;
     }
     
-    async function handleClick() {
+    function showSecretToast(msg) {
+        let toast = document.createElement('div');
+        toast.className = 'secret-toast';
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    async function handleClick(e) {
         if (energy < 1) {
-            tg.showAlert("⛔ Нет энергии! Подожди немного ⏳");
+            tg.showAlert("⛔ Нет энергии! Подожди 5 минут");
             return;
         }
+        
+        const rect = document.getElementById('coin').getBoundingClientRect();
+        const clickX = ((e.clientX - rect.left) / rect.width) * 100;
+        const clickY = ((e.clientY - rect.top) / rect.height) * 100;
         
         const res = await fetch(`${API_URL}/api/click`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ telegram_id: userId })
+            body: JSON.stringify({ telegram_id: userId, clickX, clickY })
         });
         const data = await res.json();
+        
         if (data.success) {
             dust = data.dust;
             energy = data.energy;
@@ -245,19 +246,21 @@
             clickPower = data.clickPower;
             totalClicks++;
             updateUI();
-            showClickEffect();
+            
+            if (data.secretBonus) showSecretToast(data.secretMessage);
+            showClickEffect(data.clickPower);
             tg.HapticFeedback.impactOccurred('heavy');
         } else {
             tg.showAlert(data.message);
         }
     }
     
-    function showClickEffect() {
+    function showClickEffect(power) {
         const coin = document.getElementById('coin');
         const rect = coin.getBoundingClientRect();
         const effect = document.createElement('div');
         effect.className = 'click-effect';
-        effect.innerText = `+${clickPower}`;
+        effect.innerText = `+${power}`;
         effect.style.left = `${rect.left + rect.width / 2}px`;
         effect.style.top = `${rect.top + rect.height / 2}px`;
         document.body.appendChild(effect);
@@ -266,8 +269,35 @@
     
     document.getElementById('coin').addEventListener('click', handleClick);
     
-    document.getElementById('convertBtn').addEventListener('click', () => {
-        tg.showAlert(`🔄 Обмен Dust → ZUZ будет доступен после запуска смарт-контракта.\nВаш Dust: ${dust}`);
+    document.getElementById('dailyBtn').addEventListener('click', async () => {
+        const res = await fetch(`${API_URL}/api/daily`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_id: userId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            dust += data.bonus;
+            updateUI();
+            tg.showAlert(`🎁 Ежедневный бонус: +${data.bonus} Dust! Стрик: ${data.streak} дней`);
+        } else {
+            tg.showAlert(data.message);
+        }
+    });
+    
+    document.getElementById('autoMinerBtn').addEventListener('click', async () => {
+        const res = await fetch(`${API_URL}/api/buy_auto_miner`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_id: userId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            tg.showAlert(`✅ Авто-кликер улучшен до уровня ${data.newLevel}!`);
+            login(); // обновляем данные
+        } else {
+            tg.showAlert(data.message);
+        }
     });
     
     document.getElementById('leaderboardBtn').addEventListener('click', async () => {
