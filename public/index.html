@@ -55,18 +55,14 @@
     tg.expand();
     
     function showAlert(msg) {
-        if (tg.showPopup) {
-            tg.showPopup({ message: msg, buttons: [{ type: 'ok' }] });
-        } else {
-            alert(msg);
-        }
+        if (tg.showPopup) tg.showPopup({ message: msg, buttons: [{ type: 'ok' }] });
+        else alert(msg);
     }
     
     let userId = tg.initDataUnsafe.user?.id;
     let username = tg.initDataUnsafe.user?.username || tg.initDataUnsafe.user?.first_name || "Игрок";
     
     let dust = 0, energy = 100, clickPower = 1, totalClicks = 0, level = 1;
-    
     const API_URL = window.location.origin;
     
     async function login() {
@@ -94,13 +90,10 @@
         document.getElementById('clickPower').innerText = clickPower;
         document.getElementById('totalClicks').innerText = totalClicks;
         document.getElementById('levelDisplay').innerHTML = `🏆 Уровень ${level}`;
-        const percent = Math.max(0, Math.min(100, (energy / 100) * 100));
-        document.getElementById('energyFill').style.width = `${percent}%`;
+        document.getElementById('energyFill').style.width = `${Math.max(0, Math.min(100, (energy / 100) * 100))}%`;
     }
     
     function showSecretToast(msg) {
-        let old = document.querySelector('.secret-toast');
-        if (old) old.remove();
         let toast = document.createElement('div');
         toast.className = 'secret-toast';
         toast.innerText = msg;
@@ -124,6 +117,7 @@
             return;
         }
         
+        // Получаем координаты клика
         let clientX, clientY;
         if (e.touches) {
             clientX = e.touches[0].clientX;
@@ -139,6 +133,9 @@
         const clickX = ((clientX - rect.left) / rect.width) * 100;
         const clickY = ((clientY - rect.top) / rect.height) * 100;
         
+        // ОТЛАДКА: видим, какие координаты отправляем
+        console.log(`Отправляем координаты: X=${clickX.toFixed(2)}%, Y=${clickY.toFixed(2)}%`);
+        
         try {
             const res = await fetch(`${API_URL}/api/click`, {
                 method: 'POST',
@@ -153,13 +150,17 @@
                 clickPower = data.clickPower;
                 totalClicks = data.totalClicks;
                 updateUI();
-                if (data.secretBonus) showSecretToast(data.secretMessage);
+                if (data.secretBonus) {
+                    console.log(`✅ Секрет найден! +10000!`);
+                    showSecretToast(data.secretMessage);
+                }
                 showClickEffect(data.clickPower, clientX, clientY);
                 if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
             } else {
                 showAlert(data.message);
             }
         } catch(err) {
+            console.error('Ошибка при отправке запроса:', err);
             showAlert('Ошибка сети, попробуй ещё раз');
         }
     }
@@ -179,9 +180,7 @@
                 dust += data.bonus;
                 updateUI();
                 showAlert(`🎁 Ежедневный бонус: +${data.bonus} Dust! Стрик: ${data.streak} дней`);
-            } else {
-                showAlert(data.message);
-            }
+            } else showAlert(data.message);
         } catch(e) { showAlert('Ошибка сети'); }
     };
     
@@ -196,9 +195,7 @@
             if (data.success) {
                 showAlert(`✅ Авто-кликер улучшен до уровня ${data.newLevel}!`);
                 login();
-            } else {
-                showAlert(data.message);
-            }
+            } else showAlert(data.message);
         } catch(e) { showAlert('Ошибка сети'); }
     };
     
@@ -207,9 +204,7 @@
             const res = await fetch(`${API_URL}/api/leaderboard`);
             const leaders = await res.json();
             let msg = "🏆 ТОП-10 КЛИКЕРОВ 🏆\n\n";
-            leaders.forEach((u, i) => {
-                msg += `${i+1}. ${u.username} — ${u.total_clicks} кликов (ур. ${u.level})\n`;
-            });
+            leaders.forEach((u, i) => msg += `${i+1}. ${u.username} — ${u.total_clicks} кликов (ур. ${u.level})\n`);
             showAlert(msg);
         } catch(e) { showAlert('Ошибка загрузки лидеров'); }
     };
