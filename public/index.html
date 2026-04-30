@@ -120,48 +120,53 @@
     }
     
     async function handleClick(e) {
-        if (energy < 1) {
-            showAlert("⛔ Нет энергии! Подожди 5 минут");
-            return;
-        }
-        let clientX, clientY;
-        if (e.touches) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-            e.preventDefault();
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-        const coin = document.getElementById('coin');
-        const rect = coin.getBoundingClientRect();
-        const clickX = ((clientX - rect.left) / rect.width) * 100;
-        const clickY = ((clientY - rect.top) / rect.height) * 100;
-        
-        try {
-            const res = await fetch(`${API_URL}/api/click`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ telegram_id: userId, clickX, clickY })
-            });
-            const data = await res.json();
-            if (data.success) {
-                dust = data.dust;
-                energy = data.energy;
-                level = data.level;
-                clickPower = data.clickPower;
-                totalClicks = data.totalClicks;
-                updateUI();
-                if (data.secretBonus) showSecretToast(data.secretMessage);
-                showClickEffect(data.clickPower, clientX, clientY);
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
-            } else {
-                showAlert(data.message);
-            }
-        } catch(err) {
-            showAlert('Ошибка сети, попробуй ещё раз');
-        }
+    if (energy < 1) {
+        showAlert("⛔ Нет энергии! Подожди 5 минут");
+        return;
     }
+
+    // Получаем координаты клика для любого устройства
+    let clientX, clientY;
+    if (e.touches) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+        e.preventDefault();
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+
+    const coin = document.getElementById('coin');
+    const rect = coin.getBoundingClientRect();
+    const clickX = ((clientX - rect.left) / rect.width) * 100;
+    const clickY = ((clientY - rect.top) / rect.height) * 100;
+
+    console.log('Click position:', clickX, clickY);  // ← для проверки в консоли
+
+    try {
+        const res = await fetch(`${API_URL}/api/click`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_id: userId, clickX, clickY })
+        });
+        const data = await res.json();
+        if (data.success) {
+            dust = data.dust;
+            energy = data.energy;
+            level = data.level;
+            clickPower = data.clickPower;
+            totalClicks = data.totalClicks;
+            updateUI();
+            if (data.secretBonus) showSecretToast(data.secretMessage);
+            showClickEffect(data.clickPower, clientX, clientY);
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+        } else {
+            showAlert(data.message);
+        }
+    } catch(err) {
+        showAlert('Ошибка сети, попробуй ещё раз');
+    }
+}
     
     document.getElementById('coin').addEventListener('click', handleClick);
     document.getElementById('coin').addEventListener('touchstart', handleClick, { passive: false });
