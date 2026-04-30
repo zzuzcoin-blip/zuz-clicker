@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
@@ -26,6 +27,7 @@ db.serialize(() => {
             daily_streak INTEGER DEFAULT 0,
             last_daily_claim INTEGER DEFAULT 0,
             last_secret_click INTEGER DEFAULT 0,
+            last_energy_refill INTEGER DEFAULT (strftime('%s', 'now')),
             achievements TEXT DEFAULT '[]',
             created_at INTEGER DEFAULT (strftime('%s', 'now'))
         )
@@ -36,7 +38,6 @@ db.serialize(() => {
 function getDailySecretZone() {
     const today = new Date().toISOString().slice(0,10);
     const hash = today.split('').reduce((a,b) => a + b.charCodeAt(0), 0);
-    // Рандомная точка на монете (x: 0-100%, y: 0-100%)
     return {
         x: 20 + (hash % 60),
         y: 20 + ((hash * 7) % 60),
@@ -54,13 +55,13 @@ app.post('/api/login', (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         
         if (!user) {
-            // Новый пользователь → приветственный бонус
             db.run(
                 'INSERT INTO users (telegram_id, username, balance_dust, energy) VALUES (?, ?, ?, ?)',
                 [telegram_id, username, 500, 150],
                 function(err) {
                     if (err) return res.status(500).json({ error: err.message });
                     db.get('SELECT * FROM users WHERE telegram_id = ?', [telegram_id], (err, newUser) => {
+                        if (err) return res.status(500).json({ error: err.message });
                         res.json({ ...newUser, isNew: true, secretZone: getDailySecretZone() });
                     });
                 }
@@ -68,7 +69,8 @@ app.post('/api/login', (req, res) => {
         } else {
             // Восстановление энергии
             const now = Math.floor(Date.now() / 1000);
-            const elapsed = Math.floor((now - (user.last_energy_refill || now)) / 60);
+            const lastRefill = user.last_energy_refill || now;
+            const elapsed = Math.floor((now - lastRefill) / 60);
             let newEnergy = Math.min(100, user.energy + elapsed);
             if (newEnergy !== user.energy) {
                 db.run('UPDATE users SET energy = ?, last_energy_refill = ? WHERE telegram_id = ?', 
@@ -80,7 +82,7 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// Обработка клика (с учётом секретной зоны)
+// Обработка клика
 app.post('/api/click', (req, res) => {
     const { telegram_id, clickX, clickY } = req.body;
     const now = Math.floor(Date.now() / 1000);
@@ -101,22 +103,22 @@ app.post('/api/click', (req, res) => {
         }
         
         // Восстановление энергии
-        const elapsed = Math.floor((now - (user.last_energy_refill || now)) / 60);
+        const lastRefill = user.last_energy_refill || now;
+        const elapsed = Math.floor((now - lastRefill) / 60);
         let newEnergy = Math.min(100, user.energy + elapsed);
         
         if (newEnergy < 1) {
             return res.json({ 
                 success: false, 
                 message: '⛔ Нет энергии! Подожди 5 минут',
-                energy: newEnergy,
-                secretMessage: ''
+                energy: newEnergy
             });
         }
         
         newEnergy -= 1;
         const dustGain = user.click_power;
         const newDust = user.balance_dust + dustGain + secretBonus;
-        const newTotalClicks = user.total_clicks + 1;
+        const newTotalClicks = (user.total_clicks || 0) + 1;
         const newLevel = Math.floor(newTotalClicks / 10) + 1;
         const newClickPower = 1 + Math.floor((newLevel - 1) / 10);
         
@@ -137,6 +139,7 @@ app.post('/api/click', (req, res) => {
                 energy: newEnergy,
                 level: newLevel,
                 clickPower: newClickPower,
+                totalClicks: newTotalClicks,
                 secretBonus: secretBonus,
                 secretMessage: secretMessage
             });
@@ -198,7 +201,7 @@ app.post('/api/buy_auto_miner', (req, res) => {
     db.get('SELECT balance_dust, auto_miner_level FROM users WHERE telegram_id = ?', [telegram_id], (err, user) => {
         if (err || !user) return res.status(404).json({ error: 'User not found' });
         
-        const currentLevel = user.auto_miner_level;
+        const currentLevel = user.auto_miner_level || 0;
         if (currentLevel >= 10) {
             return res.json({ success: false, message: 'Максимальный уровень авто-кликера!' });
         }
