@@ -13,11 +13,17 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+// === ПРОСТАЯ СЕКРЕТНАЯ ЗОНА (ГАРАНТИРОВАННО РАБОТАЕТ) ===
 function getDailySecretZone() {
     const today = new Date().toISOString().slice(0,10);
     const hash = today.split('').reduce((a,b) => a + b.charCodeAt(0), 0);
-    return { x: 20 + (hash % 60), y: 20 + ((hash * 7) % 60), date: today };
+    // Зона занимает почти всю монету (от 20% до 80%) — сложно промахнуться
+    return { 
+        x: 35 + (hash % 30),    // 35..64%
+        y: 35 + ((hash * 7) % 30), // 35..64%
+        radius: 25,              // большой радиус
+        date: today 
+    };
 }
 
 // === API ===
@@ -62,7 +68,7 @@ app.post('/api/login', async (req, res) => {
     res.json({ ...user, isNew: false, secretZone: getDailySecretZone() });
 });
 
-// Обработка клика
+// Обработка клика (с большой зоной попадания)
 app.post('/api/click', async (req, res) => {
     const { telegram_id, clickX, clickY } = req.body;
     const now = Math.floor(Date.now() / 1000);
@@ -75,8 +81,12 @@ app.post('/api/click', async (req, res) => {
     
     if (error || !user) return res.status(404).json({ error: 'User not found' });
     
+    // Секретная зона (увеличенный радиус)
     const secretZone = getDailySecretZone();
-    const isSecretHit = Math.abs(clickX - secretZone.x) < 8 && Math.abs(clickY - secretZone.y) < 8;
+    const dx = Math.abs(clickX - secretZone.x);
+    const dy = Math.abs(clickY - secretZone.y);
+    const isSecretHit = dx < secretZone.radius && dy < secretZone.radius;
+    
     let secretBonus = 0;
     let secretMessage = '';
     
@@ -89,12 +99,13 @@ app.post('/api/click', async (req, res) => {
             .eq('telegram_id', telegram_id);
     }
     
+    // Восстановление энергии
     const lastRefill = user.last_energy_refill || now;
     const elapsed = Math.floor((now - lastRefill) / 60);
     let newEnergy = Math.min(100, user.energy + elapsed);
     
     if (newEnergy < 1) {
-        return res.json({ success: false, message: 'Нет энергии! Подожди 5 минут', energy: newEnergy });
+        return res.json({ success: false, message: '⛔ Нет энергии! Подожди 5 минут', energy: newEnergy });
     }
     
     newEnergy -= 1;
@@ -130,7 +141,7 @@ app.post('/api/click', async (req, res) => {
     });
 });
 
-// Получение профиля
+// Остальные API (профиль, daily, лидеры, авто-кликер) такие же, как были
 app.get('/api/profile/:telegram_id', async (req, res) => {
     const { data: user, error } = await supabase
         .from('users')
@@ -142,7 +153,6 @@ app.get('/api/profile/:telegram_id', async (req, res) => {
     res.json({ ...user, secretZone: getDailySecretZone() });
 });
 
-// Ежедневный бонус
 app.post('/api/daily', async (req, res) => {
     const { telegram_id } = req.body;
     const today = new Date().toISOString().slice(0,10);
@@ -178,7 +188,6 @@ app.post('/api/daily', async (req, res) => {
     res.json({ success: true, bonus, streak: newStreak });
 });
 
-// Таблица лидеров
 app.get('/api/leaderboard', async (req, res) => {
     const { data: leaders, error } = await supabase
         .from('users')
@@ -190,7 +199,6 @@ app.get('/api/leaderboard', async (req, res) => {
     res.json(leaders);
 });
 
-// Покупка авто-кликера
 app.post('/api/buy_auto_miner', async (req, res) => {
     const { telegram_id } = req.body;
     const costs = [500, 1500, 3500, 7500, 15000, 30000, 60000, 120000, 250000, 500000];
