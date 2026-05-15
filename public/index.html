@@ -62,7 +62,7 @@
     let username = tg.initDataUnsafe.user?.username || tg.initDataUnsafe.user?.first_name || "Игрок";
 
     let dust = 0, energy = 100, clickPower = 1, totalClicks = 0, level = 1;
-    const API_URL = 'https://zuzclicker-bot.onrender.com'
+    const API_URL = 'https://zuzclicker-bot.onrender.com';
 
     async function login() {
         try {
@@ -138,6 +138,7 @@
                 body: JSON.stringify({ telegram_id: userId, clickX, clickY })
             });
             const data = await res.json();
+            console.log('Ответ сервера:', data);
 
             if (data.success) {
                 dust = data.dust;
@@ -154,7 +155,7 @@
                 showAlert(data.message);
             }
         } catch(err) {
-            console.error(err);
+            console.error('Ошибка:', err);
             showAlert('Ошибка сети');
         }
     }
