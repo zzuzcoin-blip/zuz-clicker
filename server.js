@@ -20,7 +20,7 @@ function getDailySecretZone() {
     return { 
         x: 30 + (hash % 40),
         y: 30 + ((hash * 7) % 40),
-        radius: 15,
+        radius: 5,
         date: today 
     };
 }
