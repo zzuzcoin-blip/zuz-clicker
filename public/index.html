@@ -54,9 +54,9 @@
     tg.ready();
     tg.expand();
     
+    // ========== УПРОЩЁННАЯ showAlert (работает везде) ==========
     function showAlert(msg) {
-        if (tg.showPopup) tg.showPopup({ message: msg, buttons: [{ type: 'ok' }] });
-        else alert(msg);
+        alert(msg);
     }
     
     let userId = tg.initDataUnsafe.user?.id;
@@ -117,7 +117,6 @@
             return;
         }
         
-        // Получаем координаты клика
         let clientX, clientY;
         if (e.touches) {
             clientX = e.touches[0].clientX;
@@ -132,9 +131,6 @@
         const rect = coin.getBoundingClientRect();
         const clickX = ((clientX - rect.left) / rect.width) * 100;
         const clickY = ((clientY - rect.top) / rect.height) * 100;
-        
-        // ОТЛАДКА: видим, какие координаты отправляем
-        console.log(`Отправляем координаты: X=${clickX.toFixed(2)}%, Y=${clickY.toFixed(2)}%`);
         
         try {
             const res = await fetch(`${API_URL}/api/click`, {
@@ -151,7 +147,6 @@
                 totalClicks = data.totalClicks;
                 updateUI();
                 if (data.secretBonus) {
-                    console.log(`✅ Секрет найден! +10000!`);
                     showSecretToast(data.secretMessage);
                 }
                 showClickEffect(data.clickPower, clientX, clientY);
