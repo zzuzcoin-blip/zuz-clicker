@@ -53,18 +53,17 @@
     let tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
-    
-    // ========== УПРОЩЁННАЯ showAlert (работает везде) ==========
+
     function showAlert(msg) {
-    alert(msg);
-}
-    
+        alert(msg);
+    }
+
     let userId = tg.initDataUnsafe.user?.id;
     let username = tg.initDataUnsafe.user?.username || tg.initDataUnsafe.user?.first_name || "Игрок";
-    
+
     let dust = 0, energy = 100, clickPower = 1, totalClicks = 0, level = 1;
     const API_URL = window.location.origin;
-    
+
     async function login() {
         try {
             const res = await fetch(`${API_URL}/api/login`, {
@@ -83,7 +82,7 @@
             if (data.isNew) showAlert('🎁 Ты получил 500 Dust и +50 энергии! Начни кликать!');
         } catch(e) { showAlert('Ошибка подключения к серверу'); }
     }
-    
+
     function updateUI() {
         document.getElementById('dustBalance').innerText = dust;
         document.getElementById('energyValue').innerText = energy;
@@ -92,7 +91,7 @@
         document.getElementById('levelDisplay').innerHTML = `🏆 Уровень ${level}`;
         document.getElementById('energyFill').style.width = `${Math.max(0, Math.min(100, (energy / 100) * 100))}%`;
     }
-    
+
     function showSecretToast(msg) {
         let toast = document.createElement('div');
         toast.className = 'secret-toast';
@@ -100,7 +99,7 @@
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
     }
-    
+
     function showClickEffect(power, x, y) {
         const el = document.createElement('div');
         el.className = 'click-effect';
@@ -110,60 +109,59 @@
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 550);
     }
-    
+
     async function handleClick(e) {
-    if (energy < clickPower) {
-        showAlert("⛔ Нет энергии! Подожди 5 минут");
-        return;
-    }
-
-    let clientX, clientY;
-    if (e.touches) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-        e.preventDefault();
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-
-    const coin = document.getElementById('coin');
-    const rect = coin.getBoundingClientRect();
-    const clickX = ((clientX - rect.left) / rect.width) * 100;
-    const clickY = ((clientY - rect.top) / rect.height) * 100;
-
-    try {
-        const res = await fetch(`${API_URL}/api/click`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ telegram_id: userId, clickX, clickY })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            // 🔁 Обновляем всё из ответа сервера
-            dust = data.dust;
-            energy = data.energy;
-            level = data.level;
-            clickPower = data.clickPower;
-            totalClicks = data.totalClicks;
-            updateUI();
-
-            if (data.secretBonus) showSecretToast(data.secretMessage);
-            showClickEffect(data.clickPower, clientX, clientY);
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
-        } else {
-            showAlert(data.message);
+        if (energy < clickPower) {
+            showAlert("⛔ Нет энергии! Подожди 5 минут");
+            return;
         }
-    } catch (err) {
-        console.error('Ошибка:', err);
-        showAlert('Ошибка сети');
+
+        let clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+            e.preventDefault();
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        const coin = document.getElementById('coin');
+        const rect = coin.getBoundingClientRect();
+        const clickX = ((clientX - rect.left) / rect.width) * 100;
+        const clickY = ((clientY - rect.top) / rect.height) * 100;
+
+        try {
+            const res = await fetch(`${API_URL}/api/click`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ telegram_id: userId, clickX, clickY })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                dust = data.dust;
+                energy = data.energy;
+                level = data.level;
+                clickPower = data.clickPower;
+                totalClicks = data.totalClicks;
+                updateUI();
+
+                if (data.secretBonus) showSecretToast(data.secretMessage);
+                showClickEffect(data.clickPower, clientX, clientY);
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+            } else {
+                showAlert(data.message);
+            }
+        } catch(err) {
+            console.error(err);
+            showAlert('Ошибка сети');
+        }
     }
-}
-    
+
     document.getElementById('coin').addEventListener('click', handleClick);
     document.getElementById('coin').addEventListener('touchstart', handleClick, { passive: false });
-    
+
     document.getElementById('dailyBtn').onclick = async () => {
         try {
             const res = await fetch(`${API_URL}/api/daily`, {
@@ -179,7 +177,7 @@
             } else showAlert(data.message);
         } catch(e) { showAlert('Ошибка сети'); }
     };
-    
+
     document.getElementById('autoMinerBtn').onclick = async () => {
         try {
             const res = await fetch(`${API_URL}/api/buy_auto_miner`, {
@@ -194,7 +192,7 @@
             } else showAlert(data.message);
         } catch(e) { showAlert('Ошибка сети'); }
     };
-    
+
     document.getElementById('leaderboardBtn').onclick = async () => {
         try {
             const res = await fetch(`${API_URL}/api/leaderboard`);
@@ -204,7 +202,7 @@
             showAlert(msg);
         } catch(e) { showAlert('Ошибка загрузки лидеров'); }
     };
-    
+
     login();
 </script>
 </body>
