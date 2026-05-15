@@ -1,26 +1,26 @@
-require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
 app.use(express.json());
-app.use(express.static(__dirname));  // ← главное исправление: раздаём файлы из корня
+app.use(express.static(__dirname));
 
-// === ПОДКЛЮЧЕНИЕ К SUPABASE ===
+// Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// === ПРОСТАЯ СЕКРЕТНАЯ ЗОНА ===
+// Секретная зона
 function getDailySecretZone() {
     const today = new Date().toISOString().slice(0,10);
     const hash = today.split('').reduce((a,b) => a + b.charCodeAt(0), 0);
     return { 
-        x: 30 + (hash % 40),      // 30..69%
-        y: 30 + ((hash * 7) % 40), // 30..69%
-        radius: 5,               // ← уменьшили до 5
+        x: 30 + (hash % 40),
+        y: 30 + ((hash * 7) % 40),
+        radius: 15,
         date: today 
     };
 }
@@ -50,7 +50,6 @@ app.post('/api/login', async (req, res) => {
         return res.json({ ...newUser, isNew: true, secretZone: getDailySecretZone() });
     }
     
-    // Восстановление энергии
     const now = Math.floor(Date.now() / 1000);
     const lastRefill = user.last_energy_refill || now;
     const elapsed = Math.floor((now - lastRefill) / 60);
@@ -79,7 +78,6 @@ app.post('/api/click', async (req, res) => {
     
     if (error || !user) return res.status(404).json({ error: 'User not found' });
     
-    // Секретная зона
     const secretZone = getDailySecretZone();
     const dx = Math.abs(clickX - secretZone.x);
     const dy = Math.abs(clickY - secretZone.y);
@@ -97,7 +95,6 @@ app.post('/api/click', async (req, res) => {
             .eq('telegram_id', telegram_id);
     }
     
-    // Восстановление энергии
     const lastRefill = user.last_energy_refill || now;
     const elapsed = Math.floor((now - lastRefill) / 60);
     let newEnergy = Math.min(100, user.energy + elapsed);
@@ -230,11 +227,11 @@ app.post('/api/buy_auto_miner', async (req, res) => {
     res.json({ success: true, newLevel });
 });
 
-// Перенаправление корня на index.html (на всякий случай)
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+// Отдача index.html для всех остальных маршрутов
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ ZUZ Clicker API with Supabase on port ${PORT}`);
+    console.log(`✅ ZUZ Clicker API on port ${PORT}`);
 });
