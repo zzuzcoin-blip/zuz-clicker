@@ -55,9 +55,8 @@
     tg.expand();
 
     function showAlert(msg) {
-        if (tg.showPopup) tg.showPopup({ message: msg, buttons: [{ type: 'ok' }] });
-        else alert(msg);
-    }
+    alert(msg);
+}
 
     let userId = tg.initDataUnsafe.user?.id;
     let username = tg.initDataUnsafe.user?.username || tg.initDataUnsafe.user?.first_name || "Игрок";
@@ -198,12 +197,13 @@
     try {
         const res = await fetch(`${API_URL}/api/leaderboard`);
         const leaders = await res.json();
+        console.log('Лидеры загружены:', leaders); // ← отладка
         let msg = "🏆 ТОП-10 КЛИКЕРОВ 🏆\n\n";
         leaders.forEach((u, i) => msg += `${i+1}. ${u.username} — ${u.total_clicks} кликов (ур. ${u.level})\n`);
-        showAlert(msg);
+        alert(msg);
     } catch(e) {
-        console.error(e);
-        showAlert('Ошибка загрузки лидеров');
+        console.error('Ошибка загрузки:', e);
+        alert('Ошибка загрузки лидеров');
     }
 };
 
