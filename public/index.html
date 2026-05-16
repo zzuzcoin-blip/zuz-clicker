@@ -195,14 +195,17 @@
     };
 
     document.getElementById('leaderboardBtn').onclick = async () => {
-        try {
-            const res = await fetch(`${API_URL}/api/leaderboard`);
-            const leaders = await res.json();
-            let msg = "🏆 ТОП-10 КЛИКЕРОВ 🏆\n\n";
-            leaders.forEach((u, i) => msg += `${i+1}. ${u.username} — ${u.total_clicks} кликов (ур. ${u.level})\n`);
-            showAlert(msg);
-        } catch(e) { showAlert('Ошибка загрузки лидеров'); }
-    };
+    try {
+        const res = await fetch(`${API_URL}/api/leaderboard`);
+        const leaders = await res.json();
+        let msg = "🏆 ТОП-10 КЛИКЕРОВ 🏆\n\n";
+        leaders.forEach((u, i) => msg += `${i+1}. ${u.username} — ${u.total_clicks} кликов (ур. ${u.level})\n`);
+        showAlert(msg);
+    } catch(e) {
+        console.error(e);
+        showAlert('Ошибка загрузки лидеров');
+    }
+};
 
     login();
 </script>
